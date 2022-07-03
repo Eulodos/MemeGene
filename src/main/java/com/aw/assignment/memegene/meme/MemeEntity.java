@@ -15,21 +15,15 @@ public class MemeEntity {
     private Long id;
 
     @Lob
-    private byte[] image;
+    private byte[] meme;
 
-    private String title;
-
-    private Integer width;
-
-    private Integer height;
+    private String author;
 
     protected MemeEntity() {
     }
 
-    public MemeEntity(final byte[] image, final String title, final Integer width, final Integer height) {
-        this.image = image;
-        this.title = title;
-        this.width = width;
-        this.height = height;
+    protected MemeEntity(final byte[] meme, final String author) {
+        this.meme = meme;
+        this.author = author;
     }
 }
