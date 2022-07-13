@@ -27,8 +27,8 @@ class MemeController {
     }
 
     @GetMapping(value = "/templates", produces = MediaType.APPLICATION_JSON_VALUE)
-    List<Object> getMemeTemplates() {
-        return null;
+    List<TestRecord> getMemeTemplates() {
+        return memeTemplateRepository.findAllProjectedBy();
     }
 
     @GetMapping(value = "/meme/{id}", produces = MediaType.IMAGE_JPEG_VALUE)
