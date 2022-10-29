@@ -56,8 +56,8 @@ public class MemeImageProcessor {
             finalImg = byteArrayOutputStream.toByteArray();
         }
 
-        MemeEntity newMeme = new MemeEntity(finalImg, author);
-        MemeEntity byHash = this.memeRepository.findFirstByHash(newMeme.hashCode());
+        final MemeEntity newMeme = new MemeEntity(finalImg, author);
+        final MemeEntity byHash = this.memeRepository.findFirstByHash(newMeme.hashCode());
         System.out.println("Result for query by hash: " + byHash);
         if (null == byHash) {
             return this.memeRepository.save(newMeme);
@@ -66,16 +66,16 @@ public class MemeImageProcessor {
         return byHash;
     }
 
-    private Color parseColor(String color) {
-        Field foundColor = COLORS.get(color.toUpperCase());
+    private Color parseColor(final String color) {
+        final Field foundColor = COLORS.get(color.toUpperCase());
         try {
             return foundColor == null ? Color.BLACK : (Color) foundColor.get(null);
-        } catch (IllegalAccessException e) {
+        } catch (final IllegalAccessException e) {
             throw new RuntimeException(e);
         }
     }
 
-    private void setDefaultColor(Graphics graphics) {
+    private void setDefaultColor(final Graphics graphics) {
         graphics.setColor(Color.BLACK);
     }
 }

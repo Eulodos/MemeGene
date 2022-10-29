@@ -30,7 +30,11 @@ class MemeController {
     //, produces = MediaType.IMAGE_JPEG_VALUE
     @GetMapping(value = "/template/{id}")
     ResponseEntity<byte[]> getTemplateById(@PathVariable final Long id) {
-        return ResponseEntity.status(200).contentType(MediaType.IMAGE_JPEG).body(memeTemplateRepository.findById(id).orElseThrow(() -> new MemeNotFoundException("Meme with id: " + id + " was not found")).getImage());
+        return ResponseEntity.status(HttpStatus.OK.value())
+                .contentType(MediaType.IMAGE_JPEG)
+                .body(memeTemplateRepository.findById(id)
+                        .orElseThrow(() -> new MemeNotFoundException("Meme with id: " + id + " was not found"))
+                        .getImage());
     }
 
     @GetMapping(value = "/templates", produces = MediaType.APPLICATION_JSON_VALUE)
@@ -49,17 +53,17 @@ class MemeController {
     byte[] createMeme(@RequestBody final CreateMemeInput input, final HttpServletRequest request) {
         final String remoteAddr = request.getRemoteAddr();
         try {
-            MemeEntity meme = this.memeProcessor.createMeme(input, remoteAddr);
+            final MemeEntity meme = this.memeProcessor.createMeme(input, remoteAddr);
             return meme.getMeme();
-        } catch (IOException e) {
+        } catch (final IOException e) {
             throw new RuntimeException(e);
         }
     }
 
     @GetMapping(value = "/meme/random", produces = MediaType.IMAGE_JPEG_VALUE)
     byte[] randomMeme() {
-        Integer firstByOrderByIdDesc = this.memeRepository.findGreatestId();
-        int i = secureRandom.nextInt(firstByOrderByIdDesc) + 1;
+        final Integer firstByOrderByIdDesc = this.memeRepository.findGreatestId();
+        final int i = secureRandom.nextInt(firstByOrderByIdDesc) + 1;
         return memeRepository.findById(i)
                 .orElseThrow(() -> new MemeNotFoundException("Shouldn't really happen"))
                 .getMeme();

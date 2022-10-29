@@ -34,17 +34,22 @@ public class MemeEntity {
     }
 
     @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        MemeEntity that = (MemeEntity) o;
+    public boolean equals(final Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        final MemeEntity that = (MemeEntity) o;
         return Arrays.equals(meme, that.meme) && Objects.equals(author, that.author);
     }
 
     @Override
     public int hashCode() {
         int result = Objects.hash(author);
-        result = 31 * result + Arrays.hashCode(meme);
+        final int primeMultiplier = 31;
+        result = primeMultiplier * result + Arrays.hashCode(meme);
         return result;
     }
 }
