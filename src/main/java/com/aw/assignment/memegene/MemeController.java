@@ -7,6 +7,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import javax.servlet.http.HttpServletRequest;
+import java.io.IOException;
+import java.security.SecureRandom;
 import java.time.Instant;
 import java.util.List;
 
@@ -15,15 +17,20 @@ class MemeController {
 
     private final MemeTemplateRepository memeTemplateRepository;
     private final MemeRepository memeRepository;
+    private final MemeImageProcessor memeProcessor;
 
-    MemeController(final MemeTemplateRepository memeTemplateRepository, final MemeRepository memeRepository) {
+    private final SecureRandom secureRandom = new SecureRandom();
+
+    MemeController(final MemeTemplateRepository memeTemplateRepository, final MemeRepository memeRepository, final MemeImageProcessor memeProcessor) {
         this.memeTemplateRepository = memeTemplateRepository;
         this.memeRepository = memeRepository;
+        this.memeProcessor = memeProcessor;
     }
 
-    @GetMapping(value = "/template/{id}", produces = MediaType.IMAGE_JPEG_VALUE)
-    byte[] getTemplateById(@PathVariable final Long id) {
-        return memeTemplateRepository.findById(id).orElseThrow(() -> new MemeNotFoundException("Meme with id: " + id + " was not found")).getImage();
+    //, produces = MediaType.IMAGE_JPEG_VALUE
+    @GetMapping(value = "/template/{id}")
+    ResponseEntity<byte[]> getTemplateById(@PathVariable final Long id) {
+        return ResponseEntity.status(200).contentType(MediaType.IMAGE_JPEG).body(memeTemplateRepository.findById(id).orElseThrow(() -> new MemeNotFoundException("Meme with id: " + id + " was not found")).getImage());
     }
 
     @GetMapping(value = "/templates", produces = MediaType.APPLICATION_JSON_VALUE)
@@ -32,26 +39,36 @@ class MemeController {
     }
 
     @GetMapping(value = "/meme/{id}", produces = MediaType.IMAGE_JPEG_VALUE)
-    byte[] getMemeById(@PathVariable final Long id) {
-        //TODO: FIX THIS
-        return this.memeRepository.findById(id).get().getMeme();
+    byte[] getMemeById(@PathVariable final Integer id) {
+        return this.memeRepository.findById(id)
+                .orElseThrow(() -> new MemeNotFoundException(String.format("Meme with ID %s not found", id)))
+                .getMeme();
     }
 
-    @PostMapping(value = "/meme", produces = MediaType.IMAGE_JPEG_VALUE)
-    byte[] createMeme(final CreateMemeInput input, final HttpServletRequest request) {
-        //TODO: Return response informing about newly created resource, also in headers
+    @PostMapping(value = "/meme", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.IMAGE_JPEG_VALUE)
+    byte[] createMeme(@RequestBody final CreateMemeInput input, final HttpServletRequest request) {
         final String remoteAddr = request.getRemoteAddr();
-        return null;
+        try {
+            MemeEntity meme = this.memeProcessor.createMeme(input, remoteAddr);
+            return meme.getMeme();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     @GetMapping(value = "/meme/random", produces = MediaType.IMAGE_JPEG_VALUE)
     byte[] randomMeme() {
-        return null;
+        Integer firstByOrderByIdDesc = this.memeRepository.findGreatestId();
+        int i = secureRandom.nextInt(firstByOrderByIdDesc) + 1;
+        return memeRepository.findById(i)
+                .orElseThrow(() -> new MemeNotFoundException("Shouldn't really happen"))
+                .getMeme();
     }
 
     @ExceptionHandler(MemeNotFoundException.class)
     ResponseEntity<ErrorResponse> handleMemeNotFoundException(final MemeNotFoundException ex, final HttpServletRequest request) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .contentType(MediaType.APPLICATION_JSON)
                 .body(new ErrorResponse(HttpStatus.NOT_FOUND.value(), Instant.now(), ex.getMessage(), request.getRequestURI()));
     }
 }

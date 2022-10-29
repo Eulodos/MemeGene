@@ -9,10 +9,21 @@ import java.io.BufferedInputStream;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.lang.reflect.Field;
+import java.lang.reflect.Modifier;
+import java.util.Arrays;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Service
 public class MemeImageProcessor {
 
+    private static final Map<String, Field> COLORS = Arrays.stream(Color.class.getDeclaredFields())
+            .filter(field -> field.getType().equals(Color.class))
+            .filter(field -> Modifier.isStatic(field.getModifiers()))
+            .filter(field -> Modifier.isFinal(field.getModifiers()))
+            .collect(Collectors.toMap(Field::getName, Function.identity()));
     private final MemeTemplateRepository memeTemplateRepository;
     private final MemeRepository memeRepository;
 
@@ -30,7 +41,13 @@ public class MemeImageProcessor {
         final Graphics graphics = image.getGraphics();
         final float fontSize = 30F;
         graphics.setFont(graphics.getFont().deriveFont(fontSize));
-        input.captionsList().forEach(caption -> graphics.drawString(caption.text(), caption.x(), caption.y()));
+        setDefaultColor(graphics);
+        input.captionList().forEach(caption -> {
+            if (input.color() != null && !input.color().isBlank()) {
+                graphics.setColor(parseColor(input.color()));
+            }
+            graphics.drawString(caption.text(), caption.x(), caption.y());
+        });
         graphics.dispose();
 
         final byte[] finalImg;
@@ -39,6 +56,26 @@ public class MemeImageProcessor {
             finalImg = byteArrayOutputStream.toByteArray();
         }
 
-        return this.memeRepository.save(new MemeEntity(finalImg, author));
+        MemeEntity newMeme = new MemeEntity(finalImg, author);
+        MemeEntity byHash = this.memeRepository.findFirstByHash(newMeme.hashCode());
+        System.out.println("Result for query by hash: " + byHash);
+        if (null == byHash) {
+            return this.memeRepository.save(newMeme);
+        }
+        System.out.println("Meme was already in the database, returning the previous record");
+        return byHash;
+    }
+
+    private Color parseColor(String color) {
+        Field foundColor = COLORS.get(color.toUpperCase());
+        try {
+            return foundColor == null ? Color.BLACK : (Color) foundColor.get(null);
+        } catch (IllegalAccessException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private void setDefaultColor(Graphics graphics) {
+        graphics.setColor(Color.BLACK);
     }
 }
