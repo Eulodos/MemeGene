@@ -22,15 +22,15 @@ class DatabaseInitializer implements ApplicationRunner {
 
     private static final Logger LOG = LoggerFactory.getLogger(DatabaseInitializer.class);
 
-    private final MemeRepository memeRepository;
+    private final MemeTemplateRepository memeTemplateRepository;
 
-    DatabaseInitializer(final MemeRepository memeRepository) {
-        this.memeRepository = memeRepository;
+    DatabaseInitializer(final MemeTemplateRepository memeTemplateRepository) {
+        this.memeTemplateRepository = memeTemplateRepository;
     }
 
     @Override
     public void run(final ApplicationArguments args) throws Exception {
-        if (memeRepository.count() < 1) {
+        if (memeTemplateRepository.count() < 1) {
             final ImgflipResponse response = fetchMemes();
             LOG.info("{}", response);
 
@@ -51,25 +51,25 @@ class DatabaseInitializer implements ApplicationRunner {
                 .block();
     }
 
-    private byte[] readMemeBytes(final Meme meme, final ByteArrayOutputStream byteArrayOutputStream) throws IOException {
-        final URL url = new URL(meme.url());
-        final BufferedImage bufferedImage = ImageIO.read(url);
-        ImageIO.write(bufferedImage, "jpg", byteArrayOutputStream);
-        return byteArrayOutputStream.toByteArray();
-    }
-
     private void persistMemes(final ImgflipResponse response) {
         response.data().memes().forEach(meme -> {
             try (ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream()) {
                 final byte[] imgBytes = readMemeBytes(meme, byteArrayOutputStream);
-                final MemeEntity memeEntity = new MemeEntity(imgBytes, meme.name(), meme.width(), meme.height());
-                memeRepository.save(memeEntity);
+                final MemeTemplateEntity memeTemplateEntity = new MemeTemplateEntity(imgBytes, meme.name(), meme.width(), meme.height());
+                memeTemplateRepository.save(memeTemplateEntity);
             } catch (final MalformedURLException e) {
                 LOG.error("Couldn't create an URL");
             } catch (final IOException e) {
                 LOG.error("Could not parse image for meme: {}, original ex: {}", meme.name(), e.getMessage());
             }
         });
+    }
+
+    private byte[] readMemeBytes(final Meme meme, final ByteArrayOutputStream byteArrayOutputStream) throws IOException {
+        final URL url = new URL(meme.url());
+        final BufferedImage bufferedImage = ImageIO.read(url);
+        ImageIO.write(bufferedImage, "jpg", byteArrayOutputStream);
+        return byteArrayOutputStream.toByteArray();
     }
 
     record Data(List<Meme> memes) {

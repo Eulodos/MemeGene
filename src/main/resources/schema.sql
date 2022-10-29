@@ -1,0 +1,1 @@
+CREATE SEQUENCE meme_entity_sequence START WITH 1 INCREMENT BY 1;
